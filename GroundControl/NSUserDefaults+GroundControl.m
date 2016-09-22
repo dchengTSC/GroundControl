@@ -21,7 +21,7 @@
 // THE SOFTWARE.
 
 #import "NSUserDefaults+GroundControl.h"
-#import "AFHTTPRequestOperation.h"
+#import "AFHTTPSessionManager.h"
 #import "AFURLRequestSerialization.h"
 #import "AFURLResponseSerialization.h"
 
@@ -98,22 +98,21 @@
                                success:(void (^)(NSURLRequest *request, NSHTTPURLResponse *response, NSDictionary *defaults))success
                                failure:(void (^)(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error))failure
 {
-    AFHTTPRequestOperation *requestOperation = [[AFHTTPRequestOperation alloc] initWithRequest:urlRequest];
-    requestOperation.responseSerializer = self.responseSerializer ? self.responseSerializer : [AFPropertyListResponseSerializer serializer];
-    [requestOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-        [self setValuesForKeysWithDictionary:responseObject];
-        [self synchronize];
-        
-        if (success) {
-            success(operation.request, operation.response, responseObject);
-        }
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        if (failure) {
-            failure(operation.request, operation.response, error);
-        }
-    }];
-    
-    [[[self class] gc_sharedPropertyListRequestOperationQueue] addOperation:requestOperation];
+   AFHTTPSessionManager *sessionManager = [AFHTTPSessionManager manager];
+   sessionManager.responseSerializer = [AFPropertyListResponseSerializer serializer];
+   [sessionManager GET:urlRequest.URL.absoluteString parameters:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+      [self setValuesForKeysWithDictionary:responseObject];
+      [self synchronize];
+      
+      if (success) {
+         success(urlRequest, nil, responseObject);
+      }
+
+   } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+      if (failure) {
+         failure(urlRequest, nil, error);
+      }
+   }];
 }
 
 @end
